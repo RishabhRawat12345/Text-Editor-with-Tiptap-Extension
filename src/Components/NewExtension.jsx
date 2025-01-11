@@ -1,12 +1,9 @@
 import React from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import { Extension } from '@tiptap/core';
+
 import Sentiment from 'sentiment';  
 import { jsPDF } from 'jspdf';
-import Italic from '@tiptap/extension-italic';
-
-// Sentiment analyzer setup
+import { Extension } from '@tiptap/react';
 const sentimentAnalyzer = new Sentiment();
 
 const emojiMap = {
@@ -21,18 +18,24 @@ const EmojiExtension = Extension.create({
 
   addCommands() {
     return {
-      addEmojiBasedOnSentiment: (text) => ({ commands }) => {
+      addEmojiBasedOnSentiment: () => ({ editor }) => {
+        const text = editor.getText(); // Get the editor's text content
+        if (!text) return; // Return early if text is empty or undefined
+
         const words = text.split(' ');
         const updatedText = words.map((word) => {
           const analysis = sentimentAnalyzer.analyze(word);
-          const sentiment = analysis.score > 0
-            ? 'positive'
-            : analysis.score < 0
-            ? 'negative'
-            : 'neutral';
+          const sentiment =
+            analysis.score > 0
+              ? 'positive'
+              : analysis.score < 0
+              ? 'negative'
+              : 'neutral';
           return `${word} ${emojiMap[sentiment] || ''}`;
         });
-        return updatedText.join(' ');
+
+        // Replace the editor content with the updated text
+        editor.commands.setContent(updatedText.join(' '));
       },
     };
   },
@@ -65,7 +68,7 @@ const BoldEditor = Extension.create({
 
   addCommands() {
     return {
-      toggle: () => ({ editor }) => {
+      toggleBold: () => ({ editor }) => {
         const isBoldActive = editor.isActive('bold');
         if (isBoldActive) {
           return editor.commands.unsetMark('bold');
@@ -77,42 +80,37 @@ const BoldEditor = Extension.create({
   },
 });
 
-const ItalicEditor=Extension.create({
-  name:"UnderToggle",
+// Italic Extension for toggling italic text
+const ItalicEditor = Extension.create({
+  name: 'ItalicToggle',
 
-  addCommands(){
-    return{
-      toggleUnder:()=>({editor})=>{
-       const isItalicActive=editor.isActive('italic')
-        if(isItalicActive){
+  addCommands() {
+    return {
+      toggleItalic: () => ({ editor }) => {
+        const isItalicActive = editor.isActive('italic');
+        if (isItalicActive) {
           return editor.commands.unsetMark('italic');
-        }
-        else{
+        } else {
           return editor.commands.setMark('italic');
         }
-      }
-    }
-  }
-})
-
-
-
+      },
+    };
+  },
+});
 
 const NewExtension = () => {
   const editor = useEditor({
-    extensions: [StarterKit, EmojiExtension, ExportToPDFExtension, BoldEditor,ItalicEditor],
+    extensions: [ 
+      EmojiExtension, 
+      ExportToPDFExtension, 
+      BoldEditor, 
+      ItalicEditor 
+    ],
     content: '<p>Start typing here...</p>',
   });
 
-  const handleSentimentAnalysis = () => {
-    const currentContent = editor.getHTML();
-    const updatedContent = editor.commands.addEmojiBasedOnSentiment(currentContent);
-    editor.commands.insertContent(updatedContent);
-    editor.chain().focus().run();
-  };
-
   if (!editor) {
-    return null; 
+    return null;
   }
 
   return (
@@ -132,7 +130,7 @@ const NewExtension = () => {
           Italic
         </button>
         <button
-          onClick={handleSentimentAnalysis}
+          onClick={() => editor.chain().focus().addEmojiBasedOnSentiment().run()}
           className="px-3 py-2 rounded bg-blue-500 text-white hover:bg-blue-600"
         >
           Analyze Sentiment
