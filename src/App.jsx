@@ -1,9 +1,10 @@
 import React from 'react'
-import TextEditor from './Components/TextEditor'
+
+import NewExtension from './Components/NewExtension'
 
 const App = () => {
   return (
-    <div><TextEditor/></div>
+    <div><NewExtension/></div>
   )
 }
 
